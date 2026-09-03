@@ -122,28 +122,40 @@ The agent runs `checkin --plan … --weight … --adherence … [--strength-stal
 
 ## 📸 Sample output
 
-Real excerpt from a generated plan (male, 31, 176 cm / 84 kg, fat loss, home dumbbells, lactose-intolerant):
+> One day from a generated plan — male, 31, 176 cm / 84 kg, cut −18%, home dumbbells, lactose-intolerant.
+> Every number below is computed by the engine, never guessed by the model.
 
-```markdown
-## 一、身体数据与能量目标
-| 指标 | 数值 |
-| 基础代谢 BMR | 1790 kcal |
-| 日常总消耗 TDEE | 2461 kcal |
-| **每日目标热量** | **2018 kcal**（相对 TDEE -18.0%） |
-| 蛋白质 | 185 g（2.2 g/kg × 84 kg） |
+**Energy ledger**
 
-### 周一 — 上肢
-| 动作 | 组×次 | 组间休息 |
-| 哑铃卧推 | 4×6-8 | 2-3分钟 |
-| 单臂哑铃划船 | 4×6-8 | 2-3分钟 |
-| 引体向上 | 4×6-8 | 2-3分钟 |
+| | |
+|:--|--:|
+| BMR / TDEE | 1790 / 2461 kcal |
+| **Daily target** | **2018 kcal** (−18%) |
+| Protein (2.2 g/kg) | 185 g |
+| Carbs / Fat | 194 / 56 g |
+| Expected pace | −0.7% / wk |
 
-### 周一食谱（乳糖不耐已自动过滤）
-| 早餐 | 虾仁 195 g + 米饭 185 g + 西兰花/黄瓜 300 g + 牛油果 60 g | 592 kcal |
-| 午餐 | 瘦牛肉 270 g + 糙米饭 200 g + 菠菜/彩椒 300 g + 坚果 25 g | 950 kcal |
-| 晚餐 | 金枪鱼 165 g + 燕麦 60 g + 番茄/蘑菇 300 g + 花生酱 15 g | 625 kcal |
-**食谱实际宏量（日均）**：热量 2030 kcal ｜ 蛋白 186 g ｜ 碳水 194 g ｜ 脂肪 65 g
-```
+**Monday · Upper** — home dumbbells, 4-day upper/lower split
+
+| Exercise | Sets×reps | Rest | Note |
+|:--|:--:|--:|:--|
+| Dumbbell bench press | 4×6-8 | 2-3 min | heavy compounds keep muscle in a cut |
+| One-arm dumbbell row | 4×6-8 | 2-3 min | |
+| Seated dumbbell press | 4×6-8 | 2-3 min | |
+| Pull-up | 4×6-8 | 2-3 min | |
+| Curl + triceps extension | 3×10-12 | 60-90 s | RPE 8 |
+
+**Monday meals** — lactose auto-filtered
+
+| Meal | Foods | kcal |
+|:--|:--|--:|
+| Breakfast | Shrimp 195 g · rice 185 g · broccoli/cucumber · avocado | 592 |
+| Lunch | Lean beef 270 g · brown rice 200 g · spinach/pepper · nuts | 950 |
+| Dinner | Tuna 165 g · oats 60 g · tomato/mushroom · peanut butter | 625 |
+| Σ | actual macros 186 P / 194 C / 65 F | **2030** |
+
+The full 7-day rotating plan (training tables + meals with grams) lands in `fitness-plan/plan.md`;
+check-ins print the same ledger style with a verdict line.
 
 ## 📷 Real-world example (photo → calories)
 
