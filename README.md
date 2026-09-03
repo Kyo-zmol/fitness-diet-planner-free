@@ -1,4 +1,4 @@
-# 🏋️ fitness-diet-planner
+# 🏋️ fitness-diet-planner-free
 
 **A Codex skill that turns your body data, goals, diet preferences, and available equipment into a complete weekly training plan + daily meal plan — with calories and macros computed by a deterministic engine, and progress-based adjustments built in.**
 
