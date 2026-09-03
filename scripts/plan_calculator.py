@@ -83,6 +83,14 @@ FOODS = [
     {"name": "花生酱", "cat": "F", "kcal": 588, "p": 25.0, "c": 20.0, "f": 50.0, "tags": set(), "alg": {"nuts"}},
     {"name": "橄榄油", "cat": "F", "kcal": 884, "p": 0.0, "c": 0.0, "f": 100.0, "tags": set(), "alg": set()},
     {"name": "芝麻", "cat": "F", "kcal": 559, "p": 19.0, "c": 24.0, "f": 46.0, "tags": set(), "alg": set()},
+    {"name": "紫米饭(蒸)", "cat": "C", "kcal": 120, "p": 2.8, "c": 25.0, "f": 0.9, "tags": set(), "alg": set()},
+    {"name": "南瓜(蒸)", "cat": "C", "kcal": 45, "p": 1.5, "c": 10.0, "f": 0.2, "tags": set(), "alg": set()},
+    {"name": "玉米粒(熟)", "cat": "C", "kcal": 96, "p": 3.4, "c": 21.0, "f": 1.5, "tags": set(), "alg": set()},
+    {"name": "卷心菜", "cat": "V", "kcal": 25, "p": 1.5, "c": 5.0, "f": 0.2, "tags": set(), "alg": set()},
+    {"name": "胡萝卜", "cat": "V", "kcal": 41, "p": 0.9, "c": 9.6, "f": 0.2, "tags": set(), "alg": set()},
+    {"name": "苦菊", "cat": "V", "kcal": 17, "p": 1.7, "c": 3.0, "f": 0.2, "tags": set(), "alg": set()},
+    {"name": "嫩豆腐", "cat": "P", "kcal": 57, "p": 6.0, "c": 2.5, "f": 3.0, "tags": set(), "alg": {"soy"}},
+    {"name": "油醋汁", "cat": "F", "kcal": 180, "p": 2.0, "c": 8.0, "f": 14.0, "tags": set(), "alg": set()},
 ]
 
 

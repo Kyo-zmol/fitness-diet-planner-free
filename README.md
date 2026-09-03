@@ -24,7 +24,7 @@
 | 🏠 **Equipment-aware training** | Bodyweight-only to full gym; splits auto-selected from 2–6 days/week (full body, upper/lower, PPL); no exercise repeated within a week |
 | 🩹 **Injury-safe swaps** | Knee / shoulder / lower-back / wrist: contraindicated exercises are replaced from candidate lists (or dropped), with safety notes |
 | 🔁 **Progress check-ins** | Report weekly-average weight + adherence every 2 weeks; the engine adjusts calories (never below the floor), prescribes diet breaks, and flags strength stalls |
-| 📸 **Photo meal logging** | Share a food photo — the agent’s own vision identifies dishes and portions, a built-in 65+ ingredient / Chinese-dish database computes calories deterministically, and intake is checked against your daily targets. **No API keys, no external services, zero cost** |
+| 📸 **Photo meal logging** | Share a food photo — the agent’s own vision identifies dishes and portions, a built-in 75+ ingredient / Chinese-dish database computes calories deterministically, and intake is checked against your daily targets. **No API keys, no external services, zero cost** |
 | 🛡️ **Safety rails** | Rejects deficits for pregnancy/lactation, BMI < 17.5, aggressive cuts with ED history; warns for BMI ≥ 30, age < 18 / > 65, diabetes, kidney disease |
 | 🧮 **Deterministic & auditable** | Pure Python standard library — no APIs, no dependencies, no data leaves your machine |
 
@@ -120,6 +120,52 @@ Real excerpt from a generated plan (male, 31, 176 cm / 84 kg, fat loss, home dum
 | 晚餐 | 金枪鱼 165 g + 燕麦 60 g + 番茄/蘑菇 300 g + 花生酱 15 g | 625 kcal |
 **食谱实际宏量（日均）**：热量 2030 kcal ｜ 蛋白 186 g ｜ 碳水 194 g ｜ 脂肪 65 g
 ```
+
+## 📷 Real-world example (photo → calories)
+
+Two shared photos, three servings — identified by vision, computed by the engine:
+
+| ![two plates](docs/examples/two-plates.jpg) | ![salad bowl](docs/examples/salad-bowl.jpg) |
+|:---:|:---:|
+| Photo 1: two chicken-breast purple-rice plates | Photo 2: chicken-breast salad bowl |
+
+**Photo 1 · left plate** — 567 kcal ｜ P 53.6 ｜ C 65.6 ｜ F 10.2
+
+| Food | g | kcal |
+|---|---|---|
+| Purple rice | 150 | 180 |
+| Chicken breast (boiled, shredded) | 130 | 214 |
+| Broccoli | 70 | 24 |
+| Sweet potato + pumpkin (steamed) | 60+60 | 81 |
+| Soft tofu | 70 | 40 |
+| Cabbage | 40 | 10 |
+| Vinaigrette drizzle | 10 | 18 |
+
+**Photo 1 · right plate** — 551 kcal ｜ P 56.6 ｜ C 57.8 ｜ F 10.1
+
+| Food | g | kcal |
+|---|---|---|
+| Purple rice | 130 | 156 |
+| Chicken breast | 150 | 248 |
+| Broccoli | 40 | 14 |
+| Sweet potato | 50 | 45 |
+| Corn + carrot | 30+20 | 37 |
+| Cabbage | 40 | 10 |
+| Soft tofu | 40 | 23 |
+| Vinaigrette | 10 | 18 |
+
+**Photo 2 · salad bowl** — 346 kcal ｜ P 39.9 ｜ C 31.0 ｜ F 7.7
+
+| Food | g | kcal |
+|---|---|---|
+| Chicken breast | 110 | 182 |
+| Carrot sticks | 60 | 25 |
+| Cucumber sticks | 60 | 9 |
+| Sweet corn | 80 | 77 |
+| Frisée + cabbage | 50+70 | 26 |
+| Vinaigrette | 15 | 27 |
+
+Portions are vision estimates (bowl/palm cues); every number is then computed from the built-in database, so the math is reproducible — `scripts/plan_calculator.py log --items '[{"name":"紫米饭","grams":150},…]'`.
 
 ## 🧪 Validation
 

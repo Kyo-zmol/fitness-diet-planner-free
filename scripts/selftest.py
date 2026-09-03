@@ -177,6 +177,10 @@ class TestFoodLog(unittest.TestCase):
             self.assertAlmostEqual(tot["kcal"], 440, delta=3)
             self.assertEqual(len(pc.read_log(logp)), 2)
 
+    def test_new_foods_from_photos(self):
+        for name in ("紫米饭", "南瓜", "玉米粒", "胡萝卜", "苦菊", "嫩豆腐", "油醋汁"):
+            self.assertIsNotNone(pc.find_food(name), name)
+
     def test_vision_est_fallback(self):
         with tempfile.TemporaryDirectory() as d:
             logp = str(Path(d) / "food_log.csv")
