@@ -1,0 +1,3 @@
+interface:
+  display_name: "Fitness Diet Planner"
+  short_description: "Personalized weekly training + daily meal plans with automatic calorie and macro calculation"
