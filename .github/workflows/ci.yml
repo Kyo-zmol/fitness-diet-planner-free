@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Syntax check
+        run: python -m py_compile scripts/plan_calculator.py scripts/selftest.py
+      - name: Run self-tests
+        run: python scripts/selftest.py
+      - name: Smoke-test generate + checkin
+        run: |
+          python scripts/plan_calculator.py template > /tmp/profile.json
+          python - <<'EOF'
+          import json
+          p = json.load(open("/tmp/profile.json"))
+          p.update({"name":"CI","sex":"male","age":30,"height_cm":175,"weight_kg":80,
+                    "activity_level":"light","goal":"cut","goal_intensity":"standard",
+                    "training_days":4,"experience":"intermediate",
+                    "equipment":["dumbbell","bench"],"diet":"omnivore","meals_per_day":3})
+          json.dump(p, open("/tmp/profile.json","w"), ensure_ascii=False)
+          EOF
+          python scripts/plan_calculator.py generate --profile /tmp/profile.json --out-plan /tmp/plan.json --out-md /tmp/plan.md
+          test -s /tmp/plan.md && echo "plan.md generated"

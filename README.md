@@ -8,8 +8,11 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Works with](https://img.shields.io/badge/Works%20with-Codex%20%2F%20Claude%20Code-orange)](https://github.com/openai/codex)
 [![Stdlib only](https://img.shields.io/badge/dependencies-none-lightgrey)]()
+[![CI](https://github.com/Kyo-zmol/fitness-diet-planner/actions/workflows/ci.yml/badge.svg)](https://github.com/Kyo-zmol/fitness-diet-planner/actions/workflows/ci.yml)
 
 ---
+
+![fitness-diet-planner preview](docs/preview.png)
 
 ## ✨ Features
 
@@ -82,6 +85,31 @@ Output lands in `fitness-plan/` in your workspace:
 > 两周过去了，这周平均体重 83.6，执行率大概 90%，力量没涨。
 
 The agent runs `checkin --plan … --weight … --adherence … [--strength-stalled] --save` and hands you a verdict + adjusted targets + action items.
+
+## 📸 Sample output
+
+Real excerpt from a generated plan (male, 31, 176 cm / 84 kg, fat loss, home dumbbells, lactose-intolerant):
+
+```markdown
+## 一、身体数据与能量目标
+| 指标 | 数值 |
+| 基础代谢 BMR | 1790 kcal |
+| 日常总消耗 TDEE | 2461 kcal |
+| **每日目标热量** | **2018 kcal**（相对 TDEE -18.0%） |
+| 蛋白质 | 185 g（2.2 g/kg × 84 kg） |
+
+### 周一 — 上肢
+| 动作 | 组×次 | 组间休息 |
+| 哑铃卧推 | 4×6-8 | 2-3分钟 |
+| 单臂哑铃划船 | 4×6-8 | 2-3分钟 |
+| 引体向上 | 4×6-8 | 2-3分钟 |
+
+### 周一食谱（乳糖不耐已自动过滤）
+| 早餐 | 虾仁 195 g + 米饭 185 g + 西兰花/黄瓜 300 g + 牛油果 60 g | 592 kcal |
+| 午餐 | 瘦牛肉 270 g + 糙米饭 200 g + 菠菜/彩椒 300 g + 坚果 25 g | 950 kcal |
+| 晚餐 | 金枪鱼 165 g + 燕麦 60 g + 番茄/蘑菇 300 g + 花生酱 15 g | 625 kcal |
+**食谱实际宏量（日均）**：热量 2030 kcal ｜ 蛋白 186 g ｜ 碳水 194 g ｜ 脂肪 65 g
+```
 
 ## 🧪 Validation
 
