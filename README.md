@@ -8,7 +8,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Works with](https://img.shields.io/badge/Works%20with-Codex%20%2F%20Claude%20Code-orange)](https://github.com/openai/codex)
 [![Stdlib only](https://img.shields.io/badge/dependencies-none-lightgrey)]()
-[![CI](https://github.com/Kyo-zmol/fitness-diet-planner/actions/workflows/ci.yml/badge.svg)](https://github.com/Kyo-zmol/fitness-diet-planner/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/Kyo-zmol/fitness-diet-planner-free?label=release&color=blueviolet)](https://github.com/Kyo-zmol/fitness-diet-planner-free/releases)
+[![CI](https://github.com/Kyo-zmol/fitness-diet-planner-free/actions/workflows/ci.yml/badge.svg)](https://github.com/Kyo-zmol/fitness-diet-planner-free/actions/workflows/ci.yml)
 
 ---
 
