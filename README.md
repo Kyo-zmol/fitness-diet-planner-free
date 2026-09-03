@@ -50,16 +50,16 @@ Interview ──► profile.json ──► plan_calculator.py generate ──►
 
 ```bash
 python ~/.codex/skills/.system/skill-installer/scripts/install-skill-from-github.py \
-  --repo Kyo-zmol/fitness-diet-planner --path . --name fitness-diet-planner
+  --repo Kyo-zmol/fitness-diet-planner-free --path . --name fitness-diet-planner
 ```
 
 **Manual** — clone into your skills directory:
 
 ```bash
 # Codex
-git clone https://github.com/Kyo-zmol/fitness-diet-planner.git ~/.codex/skills/fitness-diet-planner
+git clone https://github.com/Kyo-zmol/fitness-diet-planner-free.git ~/.codex/skills/fitness-diet-planner
 # Claude Code
-git clone https://github.com/Kyo-zmol/fitness-diet-planner.git ~/.claude/skills/fitness-diet-planner
+git clone https://github.com/Kyo-zmol/fitness-diet-planner-free.git ~/.claude/skills/fitness-diet-planner
 ```
 
 On Windows use `%USERPROFILE%\.codex\skills\fitness-diet-planner`. No dependencies to install — Python 3.10+ standard library only. The skill is available on your next conversation turn.
