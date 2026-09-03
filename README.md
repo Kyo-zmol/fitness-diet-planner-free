@@ -1,8 +1,10 @@
-# 🏋️ fitness-diet-planner-free
+![fitness-diet-planner-free — real training, real food, real numbers](docs/hero.jpg)
 
-**A Codex skill that turns your body data, goals, diet preferences, and available equipment into a complete weekly training plan + daily meal plan — with calories and macros computed by a deterministic engine, and progress-based adjustments built in.**
+# fitness-diet-planner-free
 
-输入身体数据、训练目标、饮食偏好和可用器械，生成按周循环的训练计划和每日食谱；热量与宏量营养素全部由脚本精确计算；支持每两周复盘并自动调整目标。
+**A Codex / Claude Code skill that turns your body data, goals, diet preferences, and available equipment into a complete weekly training plan + daily meal plan — with calories and macros computed by a deterministic engine, photo meal logging via the agent's own vision, and progress-based adjustments built in. Free, offline, no API keys.**
+
+输入身体数据、训练目标、饮食偏好和可用器械，生成按周循环的训练计划和每日食谱；热量与宏量营养素全部由脚本精确计算；📸 拍照即可记餐；支持每两周复盘并自动调整目标。免费、离线、无需任何 API。
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -14,6 +16,20 @@
 ---
 
 ![fitness-diet-planner preview](docs/preview.png)
+
+## Table of Contents
+
+- [✨ Features](#-features)
+- [🔧 How it works](#-how-it-works)
+- [🚀 Installation](#-installation)
+- [💬 Usage](#-usage)
+- [📸 Sample output](#-sample-output)
+- [📷 Real-world example (photo → calories)](#-real-world-example-photo--calories)
+- [🧪 Validation](#-validation)
+- [📁 Repo structure](#-repo-structure)
+- [⚠️ Disclaimer](#%EF%B8%8F-disclaimer)
+
+---
 
 ## ✨ Features
 
