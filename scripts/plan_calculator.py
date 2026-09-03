@@ -10,7 +10,9 @@ Subcommands:
 Pure standard library. All numbers are rounded deterministically.
 """
 import argparse
+import csv
 import json
+import os
 import sys
 from datetime import date, datetime
 
@@ -81,6 +83,37 @@ FOODS = [
     {"name": "花生酱", "cat": "F", "kcal": 588, "p": 25.0, "c": 20.0, "f": 50.0, "tags": set(), "alg": {"nuts"}},
     {"name": "橄榄油", "cat": "F", "kcal": 884, "p": 0.0, "c": 0.0, "f": 100.0, "tags": set(), "alg": set()},
     {"name": "芝麻", "cat": "F", "kcal": 559, "p": 19.0, "c": 24.0, "f": 46.0, "tags": set(), "alg": set()},
+]
+
+
+# ---------------------------------------------------------------- cooked dish DB (per 100 g)
+DISHES = [
+    {"name": "番茄炒蛋", "kcal": 120, "p": 6.0, "c": 4.0, "f": 9.0},
+    {"name": "宫保鸡丁", "kcal": 190, "p": 12.0, "c": 8.0, "f": 12.0},
+    {"name": "麻婆豆腐", "kcal": 120, "p": 8.0, "c": 5.0, "f": 8.0},
+    {"name": "红烧肉", "kcal": 480, "p": 13.0, "c": 10.0, "f": 44.0},
+    {"name": "清蒸鱼", "kcal": 105, "p": 18.0, "c": 1.0, "f": 3.0},
+    {"name": "蛋炒饭", "kcal": 170, "p": 6.0, "c": 25.0, "f": 6.0},
+    {"name": "牛肉面", "kcal": 95, "p": 4.0, "c": 14.0, "f": 2.5},
+    {"name": "猪肉饺子", "kcal": 220, "p": 8.0, "c": 25.0, "f": 10.0},
+    {"name": "肉包子", "kcal": 230, "p": 8.0, "c": 30.0, "f": 8.0},
+    {"name": "白粥", "kcal": 46, "p": 1.0, "c": 10.0, "f": 0.3},
+    {"name": "甜豆浆", "kcal": 44, "p": 2.0, "c": 8.0, "f": 1.5},
+    {"name": "煎饼果子", "kcal": 240, "p": 7.0, "c": 30.0, "f": 10.0},
+    {"name": "肉夹馍", "kcal": 250, "p": 11.0, "c": 30.0, "f": 10.0},
+    {"name": "火锅(平均)", "kcal": 150, "p": 7.0, "c": 8.0, "f": 10.0},
+    {"name": "烤羊肉串", "kcal": 250, "p": 17.0, "c": 3.0, "f": 19.0},
+    {"name": "凯撒沙拉", "kcal": 150, "p": 4.0, "c": 8.0, "f": 11.0},
+    {"name": "披萨", "kcal": 266, "p": 11.0, "c": 33.0, "f": 10.0},
+    {"name": "汉堡", "kcal": 295, "p": 13.0, "c": 28.0, "f": 15.0},
+    {"name": "薯条", "kcal": 312, "p": 3.4, "c": 41.0, "f": 15.0},
+    {"name": "可乐", "kcal": 43, "p": 0.0, "c": 10.6, "f": 0.0},
+    {"name": "珍珠奶茶", "kcal": 80, "p": 1.0, "c": 15.0, "f": 2.5},
+    {"name": "奶油蛋糕", "kcal": 350, "p": 5.0, "c": 45.0, "f": 18.0},
+    {"name": "面条(煮)", "kcal": 110, "p": 4.0, "c": 22.0, "f": 0.5},
+    {"name": "炒青菜", "kcal": 60, "p": 2.0, "c": 5.0, "f": 4.0},
+    {"name": "酸辣土豆丝", "kcal": 90, "p": 2.0, "c": 14.0, "f": 3.5},
+    {"name": "西红柿鸡蛋面", "kcal": 100, "p": 4.0, "c": 15.0, "f": 3.0},
 ]
 
 # ---------------------------------------------------------------- exercise DB
@@ -945,6 +978,118 @@ def render_checkin_md(r):
     return "\n".join(L)
 
 
+# ---------------------------------------------------------------- food logging (photo / text)
+FOOD_LOG_HEADER = ["date", "meal", "name", "grams", "kcal", "p", "c", "f", "source"]
+
+
+def find_food(name):
+    pool = FOODS + DISHES
+    for f in pool:
+        if f["name"] == name:
+            return f
+    for f in pool:
+        if name and (name in f["name"] or f["name"] in name):
+            return f
+    return None
+
+
+def log_meal(items, log_path, meal="auto", when=None):
+    """items: list of {"name": str, "grams": float} or {"name": str, "kcal":..,"p":..,"c":..,"f":..} (vision-estimated).
+    Returns (rows, totals)."""
+    rows, totals = [], {"kcal": 0, "p": 0, "c": 0, "f": 0}
+    today = when or date.today().isoformat()
+    for it in items:
+        name = it.get("name", "").strip()
+        if not name:
+            continue
+        db = find_food(name)
+        if db is not None and it.get("grams"):
+            g = it["grams"]
+            row = {"date": today, "meal": meal, "name": db["name"], "grams": g,
+                   "kcal": round(db["kcal"] * g / 100), "p": round(db["p"] * g / 100, 1),
+                   "c": round(db["c"] * g / 100, 1), "f": round(db["f"] * g / 100, 1),
+                   "source": "db"}
+        else:
+            row = {"date": today, "meal": meal, "name": name, "grams": it.get("grams", ""),
+                   "kcal": round(it.get("kcal", 0)), "p": round(it.get("p", 0), 1),
+                   "c": round(it.get("c", 0), 1), "f": round(it.get("f", 0), 1),
+                   "source": "vision-est"}
+        rows.append(row)
+        for k in totals:
+            totals[k] += row[k]
+    for k in totals:
+        totals[k] = round(totals[k], 1)
+    new_file = not os.path.exists(log_path)
+    with open(log_path, "a", encoding="utf-8", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=FOOD_LOG_HEADER)
+        if new_file:
+            w.writeheader()
+        w.writerows(rows)
+    return rows, totals
+
+
+def read_log(log_path, when=None):
+    if not os.path.exists(log_path):
+        return []
+    with open(log_path, encoding="utf-8") as fh:
+        rows = list(csv.DictReader(fh))
+    if when:
+        rows = [r for r in rows if r["date"] == when]
+    return rows
+
+
+def render_log_md(rows, totals, targets=None):
+    L = ["## \U0001F4F8 本次记录", "", "| 食物 | 份量(g) | 热量 | P | C | F | 来源 |", "|---|---|---|---|---|---|---|"]
+    for r in rows:
+        L.append(f"| {r['name']} | {r['grams']} | {r['kcal']} | {r['p']} | {r['c']} | {r['f']} | {r['source']} |")
+    L.append(f"| **合计** |  | **{totals['kcal']}** | **{totals['p']}** | **{totals['c']}** | **{totals['f']}** |  |")
+    if targets:
+        L += ["", "### 与今日目标对照", "", "| 项目 | 已摄入 | 目标 | 剩余 |", "|---|---|---|---|"]
+        for label, key, tgt in (("热量", "kcal", targets["target_kcal"]), ("蛋白质", "p", targets["protein_g"]),
+                                ("碳水", "c", targets["carb_g"]), ("脂肪", "f", targets["fat_g"])):
+            L.append(f"| {label} | {totals[key]} | {tgt} | {round(tgt - totals[key])} |")
+    return "\n".join(L)
+
+
+def cmd_log(args):
+    items = json.loads(args.items) if args.items else json.load(open(args.items_file, encoding="utf-8"))
+    rows, totals = log_meal(items, args.log, args.meal, args.date)
+    targets = None
+    if args.plan:
+        targets = json.load(open(args.plan, encoding="utf-8"))["targets"]
+        day_rows = read_log(args.log, rows[0]["date"])
+        t2 = {"kcal": 0, "p": 0, "c": 0, "f": 0}
+        for r in day_rows:
+            for k in t2:
+                t2[k] += float(r[k])
+        totals = {k: round(v, 1) for k, v in t2.items()}
+    print(render_log_md(rows, totals, targets))
+
+
+def cmd_summary(args):
+    when = args.date or date.today().isoformat()
+    rows = read_log(args.log, when)
+    totals = {"kcal": 0, "p": 0, "c": 0, "f": 0}
+    for r in rows:
+        for k in totals:
+            totals[k] += float(r[k])
+    targets = None
+    if args.plan:
+        targets = json.load(open(args.plan, encoding="utf-8"))["targets"]
+    L = [f"# \U0001F4CA {when} 饮食核对", ""]
+    if not rows:
+        L.append("当日暂无记录。")
+        print("\n".join(L))
+        return
+    L += render_log_md(rows, totals, targets).split("\n")[2:]
+    if targets:
+        over = totals["kcal"] - targets["target_kcal"]
+        verdict = "✅ 热量在目标内" if over <= 0 else f"⚠️ 超出目标 {over} kcal"
+        p_ok = "✅" if totals["p"] >= targets["protein_g"] * 0.9 else "⚠️ 偏低"
+        L += ["", f"**判定**：{verdict}；蛋白质 {totals['p']}/{targets['protein_g']} g {p_ok}"]
+    print("\n".join(L))
+
+
 # ---------------------------------------------------------------- cli
 def cmd_template(_args):
     tpl = {
@@ -1032,8 +1177,20 @@ def main():
     c.add_argument("--strength-stalled", action="store_true")
     c.add_argument("--save", action="store_true")
     c.add_argument("--out-md")
+    lg = sub.add_parser("log")
+    lg.add_argument("--items")
+    lg.add_argument("--items-file")
+    lg.add_argument("--log", required=True)
+    lg.add_argument("--meal", default="auto")
+    lg.add_argument("--date")
+    lg.add_argument("--plan")
+    sm = sub.add_parser("summary")
+    sm.add_argument("--log", required=True)
+    sm.add_argument("--date")
+    sm.add_argument("--plan")
     args = ap.parse_args()
-    {"template": cmd_template, "generate": cmd_generate, "checkin": cmd_checkin}[args.cmd](args)
+    {"template": cmd_template, "generate": cmd_generate, "checkin": cmd_checkin,
+     "log": cmd_log, "summary": cmd_summary}[args.cmd](args)
 
 
 if __name__ == "__main__":

@@ -24,6 +24,7 @@
 | 🏠 **Equipment-aware training** | Bodyweight-only to full gym; splits auto-selected from 2–6 days/week (full body, upper/lower, PPL); no exercise repeated within a week |
 | 🩹 **Injury-safe swaps** | Knee / shoulder / lower-back / wrist: contraindicated exercises are replaced from candidate lists (or dropped), with safety notes |
 | 🔁 **Progress check-ins** | Report weekly-average weight + adherence every 2 weeks; the engine adjusts calories (never below the floor), prescribes diet breaks, and flags strength stalls |
+| 📸 **Photo meal logging** | Share a food photo — the agent’s own vision identifies dishes and portions, a built-in 65+ ingredient / Chinese-dish database computes calories deterministically, and intake is checked against your daily targets. **No API keys, no external services, zero cost** |
 | 🛡️ **Safety rails** | Rejects deficits for pregnancy/lactation, BMI < 17.5, aggressive cuts with ED history; warns for BMI ≥ 30, age < 18 / > 65, diabetes, kidney disease |
 | 🧮 **Deterministic & auditable** | Pure Python standard library — no APIs, no dependencies, no data leaves your machine |
 
@@ -79,6 +80,15 @@ Output lands in `fitness-plan/` in your workspace:
 | `plan.md` | The full readable plan: energy table, daily training tables, 7-day meals, warnings |
 | `plan.json` | Machine-readable plan, consumed by check-ins |
 | `progress.csv` | Your weigh-in log: `date,weight_kg,adherence_pct,training_completed,notes` |
+| `food_log.csv` | Meal log from photos/text: `date,meal,name,grams,kcal,p,c,f,source` |
+
+**Log a meal from a photo** — just send the picture:
+
+> （发一张午餐照片）帮我记一下这顿，看看还剩多少热量额度
+
+The agent identifies dishes, estimates grams (bowl/palm cues), logs to `fitness-plan/food_log.csv` via
+`plan_calculator.py log`, and shows intake vs. remaining targets. Unknown dishes fall back to
+vision-estimated macros, clearly labeled `vision-est`. End the day with `summary` for a verdict.
 
 **Check in** (every 2 weeks, use the 7-day average of fasted morning weigh-ins):
 

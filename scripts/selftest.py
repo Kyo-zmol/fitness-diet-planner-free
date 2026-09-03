@@ -167,5 +167,25 @@ class TestCheckin(unittest.TestCase):
         self.assertGreaterEqual(r["new_kcal"], p["targets"]["floor"])
 
 
+class TestFoodLog(unittest.TestCase):
+    def test_db_match_and_totals(self):
+        with tempfile.TemporaryDirectory() as d:
+            logp = str(Path(d) / "food_log.csv")
+            rows, tot = pc.log_meal([{"name": "米饭", "grams": 200}, {"name": "番茄炒蛋", "grams": 150}], logp, "午餐")
+            self.assertEqual(rows[0]["name"], "米饭(蒸)")
+            self.assertEqual(rows[0]["source"], "db")
+            self.assertAlmostEqual(tot["kcal"], 440, delta=3)
+            self.assertEqual(len(pc.read_log(logp)), 2)
+
+    def test_vision_est_fallback(self):
+        with tempfile.TemporaryDirectory() as d:
+            logp = str(Path(d) / "food_log.csv")
+            rows, tot = pc.log_meal([{"name": "食堂神秘菜", "kcal": 450, "p": 28, "c": 12, "f": 32}], logp)
+            self.assertEqual(rows[0]["source"], "vision-est")
+            self.assertEqual(tot["kcal"], 450)
+            self.assertEqual(tot["p"], 28)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+

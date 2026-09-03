@@ -1,6 +1,6 @@
 ---
 name: fitness-diet-planner
-description: Generate personalized weekly training plans and daily meal plans from body data, fitness goals, diet preferences, and available equipment, with automatic calorie/macro calculation and progress-based adjustments. Use when someone asks for a workout/diet plan, wants to lose fat or build muscle with a concrete schedule and meals, or asks to review/adjust an existing plan this skill generated. Do not use for medical nutrition therapy, injury rehabilitation prescriptions, or general one-off nutrition questions.
+description: Generate personalized weekly training plans and daily meal plans from body data, fitness goals, diet preferences, and available equipment, with automatic calorie/macro calculation and progress-based adjustments. Also logs meals from food photos or text descriptions using the agent's own vision (no external API), matching a built-in ingredient + Chinese-dish database and comparing intake against plan targets. Use when someone asks for a workout/diet plan, wants to lose fat or build muscle with a concrete schedule and meals, shares a food photo to count calories, or asks to review/adjust an existing plan this skill generated. Do not use for medical nutrition therapy, injury rehabilitation prescriptions, or general one-off nutrition questions.
 metadata:
   short-description: Personalized training + diet plan with calorie/macro math
 ---
@@ -60,6 +60,20 @@ A delivered plan is complete only if:
 4. Meals cover every day of the week, respect diet/allergy filters (no pork for no_pork, no animal products for vegan, zero allergen hits), and distribute kcal across the requested meals_per_day.
 5. Expected weekly weight-change rate is stated, and the checkin command is explained to the user.
 6. All warnings surfaced; disclaimer present.
+
+## Photo meal logging (拍照记餐)
+When the user shares a food photo (or describes a meal in text):
+1. Use your own vision to identify each dish and estimate portions. Apply the portion cues in references/food-photo-guide.md (e.g. 1 household bowl of rice ≈ 150-200 g, 1 palm of meat/fish ≈ 100-120 g). List what you see and the estimated grams so the user can correct you.
+2. Log deterministically:
+   ```
+   python <skill>/scripts/plan_calculator.py log --log fitness-plan/food_log.csv --meal 午餐 --plan fitness-plan/plan.json --items '[{"name":"米饭","grams":200},{"name":"番茄炒蛋","grams":150}]'
+   ```
+   Known names are matched against the built-in ingredient + Chinese-dish database (`source: db`); anything unrecognized is passed with explicit vision-estimated macros (`source: vision-est`). Never invent DB entries on the fly.
+3. If `--plan` is given, the output shows intake vs. remaining targets for the day; end with `summary` for the daily verdict:
+   ```
+   python <skill>/scripts/plan_calculator.py summary --log fitness-plan/food_log.csv --plan fitness-plan/plan.json
+   ```
+4. Feeding check-ins: when the user asks for a progress check-in, compute average daily intake from food_log.csv (if present) as the adherence evidence instead of asking them to guess.
 
 ## Notes
 - Engine: scripts/plan_calculator.py (stdlib-only, deterministic). Do not edit its formulas to fit a request; change the profile instead.
