@@ -10,6 +10,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Works with](https://img.shields.io/badge/Works%20with-Codex%20%2F%20Claude%20Code-orange)](https://github.com/openai/codex)
 [![Stdlib only](https://img.shields.io/badge/dependencies-none-lightgrey)]()
+[![skills.sh](https://skills.sh/b/Kyo-zmol/fitness-diet-planner-free)](https://skills.sh/Kyo-zmol/fitness-diet-planner-free)
 [![Release](https://img.shields.io/github/v/release/Kyo-zmol/fitness-diet-planner-free?label=release&color=blueviolet)](https://github.com/Kyo-zmol/fitness-diet-planner-free/releases)
 [![CI](https://github.com/Kyo-zmol/fitness-diet-planner-free/actions/workflows/ci.yml/badge.svg)](https://github.com/Kyo-zmol/fitness-diet-planner-free/actions/workflows/ci.yml)
 
@@ -63,7 +64,13 @@ Interview ──► profile.json ──► plan_calculator.py generate ──►
 
 ## 🚀 Installation
 
-**Codex (recommended)** — ask Codex to install it, or run the built-in installer:
+**Any agent (Claude Code / Codex / Cursor …) via [skills.sh](https://skills.sh):**
+
+```bash
+npx skills add Kyo-zmol/fitness-diet-planner-free
+```
+
+**Codex** — ask Codex to install it, or run the built-in installer:
 
 ```bash
 python ~/.codex/skills/.system/skill-installer/scripts/install-skill-from-github.py \
@@ -215,6 +222,10 @@ fitness-diet-planner/
 ## ⚠️ Disclaimer
 
 This skill generates fitness and nutrition guidance from general exercise-science heuristics. **It is not medical advice.** With chronic disease, injury, pregnancy, or any eating-disorder history, consult a physician or registered dietitian first. Pain during any exercise = stop.
+
+## ⭐ Support
+
+If this skill helps you train smarter, a **star** ⭐ on GitHub makes it easier for others to find — and check [Discussions](https://github.com/Kyo-zmol/fitness-diet-planner-free/discussions) to share your plan results or request new dish-database entries.
 
 ## 📄 License
 
