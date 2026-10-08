@@ -5,7 +5,13 @@
 - 数据来源：每日晨起空腹称重，取 7 天均值，避免单日波动干扰。
 
 ## checkin 输入
-`checkin --plan plan.json --weight <当前周均重> [--adherence 0-100] [--strength-stalled] [--save]`
+`checkin --plan plan.json --weight <当前周均重> [--adherence 0-100] [--strength-stalled] [--as-of YYYY-MM-DD] [--save]`
+
+## 基线与时间窗口（v1.2 起）
+- 基线自动前移：`--save` 会把本次体重与日期写进 `last_checkin`（并追加 `checkin_history`），下次 checkin 从它起算变化率；无历史时才回退到方案生成日 + `start_weight`。
+- 即使本次判定「维持现状」（delta = 0），数据点一样会被记录，避免下次复盘把窗口越拉越长、信号被稀释。
+- 复盘窗口上限 12 周：超过则按 12 周折算，并在行动项提示「建议重新生成方案」。
+- `--as-of YYYY-MM-DD`：补记迟到的打卡或复现历史结论；不填则用今天。日期格式错误会直接报错退出，不会静默猜。
 
 ## 调整决策矩阵（脚本已内置）
 | 情形 | 动作 |
@@ -20,7 +26,7 @@
 
 ## 原则
 - 每次只调一个变量（热量或有氧），调后观察 2 周再动。
-- 调整后更新 plan.json（--save），下次 checkin 基于新基线。
+- 调整后更新 plan.json（--save），下次 checkin 基于新基线（delta = 0 的复盘同样会记录基线）。
 - 连续 2 次下调仍停滞 → 安排 1-2 周 diet break（吃到 TDEE），恢复代谢敏感度后再开缺口。
 - 体重之外同步记录：腰围、力量数据、睡眠、训练感受；重组目标以围度和力量为主指标。
 - progress.csv 行格式：`date,weight_kg,adherence_pct,training_completed,notes`。

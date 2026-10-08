@@ -31,9 +31,9 @@ Ask conversationally, a few questions at a time; infer reasonable defaults (acti
 5. Show the user the rendered plan (present `plan.md`), summarize targets verbally, and list any warnings.
 6. Check-in (when the user reports progress): append the weigh-in row to progress.csv, then:
    ```
-   python <skill>/scripts/plan_calculator.py checkin --plan fitness-plan/plan.json --weight <weekly-average-kg> --adherence <0-100> [--strength-stalled] --save
+   python <skill>/scripts/plan_calculator.py checkin --plan fitness-plan/plan.json --weight <weekly-average-kg> --adherence <0-100> [--strength-stalled] [--as-of <YYYY-MM-DD>] --save
    ```
-   Present the report and apply the action items.
+   Present the report and apply the action items. `--save` advances the baseline: the next check-in measures the change since *this* one (`last_checkin` / `checkin_history`), so periodic reviews stay accurate instead of averaging the whole plan away. Pass `--as-of` only to back-fill a late report; otherwise the script uses today.
 
 ## Rules (规则)
 - All calories/macros come from the script; do not recalculate by hand. Formulas and rationale: references/nutrition-guide.md.
@@ -41,6 +41,7 @@ Ask conversationally, a few questions at a time; infer reasonable defaults (acti
 - Adjustment decisions follow the matrix in references/progress-adjustment.md: one variable at a time, recheck after 2 weeks, never cut below the script's floor.
 - Weight is always the 7-day average of fasted morning weigh-ins, never a single-day reading.
 - Food swaps must stay within the same category and be scaled by calorie density (e.g. 100 g cooked rice ≈ 150 g sweet potato), not 1:1.
+- Never hand-edit `plan.json`'s `targets`, `last_checkin` or `checkin_history`; only `checkin --save` writes them.
 
 ## Output format (输出格式)
 `generate` writes plan.md with four sections: 能量目标表 (BMR/TDEE/target kcal/macro table) → 每周训练计划 (per-day exercise tables with sets, reps, rest) → 每日食谱 (7-day meal tables with grams and kcal, plus actual daily macro totals) → 注意事项 (warnings) + disclaimer. Checkin writes a report table + action list. When presenting, show the full plan.md content or save-and-link the file; do not paraphrase the numbers.
@@ -48,6 +49,7 @@ Ask conversationally, a few questions at a time; infer reasonable defaults (acti
 ## Exception handling (异常处理)
 - Script exit 2 + `errors`: blocking input problems (missing fields, out-of-range values, pregnancy+deficit, BMI<17.5 cut request, eating-disorder history + aggressive). Re-interview and fix; explain the health reason, don't just say "invalid".
 - `warnings` (BMI≥30/35, age <18 or >65, diabetes, kidney disease, pregnancy on health goal, injuries): always surface them verbatim in the final answer.
+- `checkin` exits 1 with a one-line message for a malformed `--as-of` (must be YYYY-MM-DD), an unreadable/invalid `--plan`, or a plan missing `targets`/`generated_at`. Show that line, fix the input, rerun — never estimate progress by hand instead.
 - Injuries: the script auto-swaps risky exercises; add the injury note and tell the user pain = stop + see a professional.
 - User refuses to answer required fields: state the assumption used and the risk (e.g. wrong TDEE), then proceed only if they accept.
 - The plan is not medical advice; keep the disclaimer in every delivered plan.

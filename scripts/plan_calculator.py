@@ -5,7 +5,9 @@
 Subcommands:
   template   Print an empty profile JSON template.
   generate   Build a full weekly training + daily meal plan from a profile.
-  checkin    Evaluate progress against a saved plan and adjust targets.
+  checkin    Evaluate progress against a saved plan and adjust targets
+             (--as-of pins the review date; baseline auto-switches to the
+             previous check-in so weekly reviews stay accurate).
 
 Pure standard library. All numbers are rounded deterministically.
 """
@@ -17,6 +19,7 @@ import sys
 from datetime import date, datetime
 
 # ---------------------------------------------------------------- constants
+MAX_CHECKIN_WEEKS = 12.0  # cap the review window so stale plans cannot dilute the signal
 GOALS = ("cut", "bulk", "recomp", "health")
 ACTIVITY = {"sedentary": 1.2, "light": 1.375, "moderate": 1.55, "active": 1.725, "athlete": 1.9}
 EXPERIENCE = ("beginner", "intermediate", "advanced")
@@ -884,13 +887,39 @@ def render_plan_md(plan):
 
 
 # ---------------------------------------------------------------- checkin
-def checkin(plan, current_weight, adherence, strength_stalled=False):
+def _parse_day(value, field):
+    """Strict YYYY-MM-DD parsing with a message a human can act on."""
+    if value is None or value == "":
+        return None
+    if isinstance(value, date):
+        return value
+    try:
+        return datetime.strptime(str(value).strip(), "%Y-%m-%d").date()
+    except ValueError:
+        raise ValueError("%s needs YYYY-MM-DD, got %r" % (field, value)) from None
+
+
+def checkin(plan, current_weight, adherence, strength_stalled=False, as_of=None):
+    """Evaluate progress and return (report, report).
+
+    as_of: date object or "YYYY-MM-DD" for the review day. Defaults to today.
+    Always pass it (or freeze it in tests) so results never drift with the
+    machine clock -- see regression note for the 2026-10-08 CI breakage.
+    Baseline: the most recent saved check-in when the plan has one, otherwise
+    the plan-generation record. This keeps weekly re-check-ins measuring the
+    last week instead of a diluting ever-growing window.
+    """
     pr, tg = plan["profile"], plan["targets"]
     start_w = plan.get("start_weight", pr["weight_kg"])
-    start_date = datetime.strptime(plan["generated_at"], "%Y-%m-%d").date()
-    weeks = max(0.5, (date.today() - start_date).days / 7)
+    last = plan.get("last_checkin") or {}
+    base_w = last.get("current_weight", start_w)
+    base_date_s = str(last.get("date") or plan["generated_at"])
+    today = _parse_day(as_of, "as_of") or date.today()
+    base_date = _parse_day(base_date_s, "plan date (generated_at / last_checkin.date)")
+    weeks_raw = (today - base_date).days / 7
+    weeks = min(MAX_CHECKIN_WEEKS, max(0.5, weeks_raw))
     expected = tg["weekly_weight_change_pct"]
-    actual = (current_weight - start_w) / start_w / weeks * 100
+    actual = (current_weight - base_w) / base_w / weeks * 100
 
     delta_kcal, actions, verdict = 0, [], ""
     floor, tdee = tg["floor"], tg["tdee"]
@@ -957,10 +986,15 @@ def checkin(plan, current_weight, adherence, strength_stalled=False):
     else:
         p_g, c_g, f_g = tg["protein_g"], tg["carb_g"], tg["fat_g"]
 
+    if weeks_raw > MAX_CHECKIN_WEEKS:
+        actions.append(f"距上次打卡已 {weeks_raw:.1f} 周（超过 {MAX_CHECKIN_WEEKS} 周窗口），"
+                       "按上限折算仅作参考；建议直接重新生成方案")
+
     report = {
-        "date": date.today().isoformat(),
+        "date": today.isoformat(),
         "weeks_elapsed": round(weeks, 1),
         "start_weight": start_w, "current_weight": current_weight,
+        "baseline_weight": base_w, "baseline_date": base_date_s,
         "expected_pct_per_week": expected, "actual_pct_per_week": round(actual, 2),
         "adherence_pct": adherence, "verdict": verdict, "actions": actions,
         "old_kcal": tg["target_kcal"], "new_kcal": new_kcal, "delta_kcal": delta_kcal,
@@ -972,8 +1006,8 @@ def checkin(plan, current_weight, adherence, strength_stalled=False):
 def render_checkin_md(r):
     L = [f"# 进度复盘报告（{r['date']}）", "",
          "| 项目 | 数值 |", "|---|---|",
-         f"| 已执行 | {r['weeks_elapsed']} 周 |",
-         f"| 起始体重 → 当前 | {r['start_weight']} kg → {r['current_weight']} kg |",
+          f"| 对比基线 | {r.get('baseline_weight', r['start_weight'])} kg（{r.get('baseline_date', '方案生成日')}）→ 当前 {r['current_weight']} kg |",
+         f"| 基线以来 | {r['weeks_elapsed']} 周 |",
          f"| 预期变化 | {r['expected_pct_per_week']:+.2f}% /周 |",
          f"| 实际变化 | {r['actual_pct_per_week']:+.2f}% /周 |",
          f"| 执行率 | {r['adherence_pct']}% |" if r["adherence_pct"] is not None else "| 执行率 | 未提供 |",
@@ -1153,13 +1187,33 @@ def cmd_generate(args):
 
 
 def cmd_checkin(args):
-    with open(args.plan, encoding="utf-8") as fh:
-        plan = json.load(fh)
-    report, _ = checkin(plan, args.weight, args.adherence, args.strength_stalled)
-    if args.save and report["delta_kcal"]:
+    try:
+        with open(args.plan, encoding="utf-8") as fh:
+            plan = json.load(fh)
+    except OSError as exc:
+        raise SystemExit("checkin: cannot read --plan %s (%s)" % (args.plan, exc))
+    except json.JSONDecodeError as exc:
+        raise SystemExit("checkin: --plan %s is not valid JSON (%s)" % (args.plan, exc))
+    try:
+        report, _ = checkin(plan, args.weight, args.adherence, args.strength_stalled,
+                            getattr(args, "as_of", None))
+    except (ValueError, KeyError) as exc:
+        raise SystemExit("checkin: %s" % exc)
+    if args.save:
         tg = plan["targets"]
-        tg["target_kcal"] = report["new_kcal"]
-        tg.update({"protein_g": report["new_macros"]["protein_g"], "carb_g": report["new_macros"]["carb_g"], "fat_g": report["new_macros"]["fat_g"]})
+        if report["delta_kcal"]:
+            tg["target_kcal"] = report["new_kcal"]
+            tg.update({"protein_g": report["new_macros"]["protein_g"],
+                       "carb_g": report["new_macros"]["carb_g"],
+                       "fat_g": report["new_macros"]["fat_g"]})
+        # Record the data point even when calories did not change: the next
+        # check-in needs it as its baseline, otherwise its window keeps diluting.
+        plan.setdefault("checkin_history", []).append({
+            "date": report["date"], "weight": report["current_weight"],
+            "adherence_pct": report["adherence_pct"],
+            "actual_pct_per_week": report["actual_pct_per_week"],
+            "delta_kcal": report["delta_kcal"], "new_kcal": report["new_kcal"],
+            "verdict": report["verdict"]})
         plan["last_checkin"] = report
         with open(args.plan, "w", encoding="utf-8") as fh:
             json.dump(plan, fh, ensure_ascii=False, indent=2)
@@ -1183,6 +1237,8 @@ def main():
     c.add_argument("--weight", type=float, required=True)
     c.add_argument("--adherence", type=float, default=None)
     c.add_argument("--strength-stalled", action="store_true")
+    c.add_argument("--as-of", dest="as_of", default=None, metavar="YYYY-MM-DD",
+                   help="复盘日期，默认今天；补记过去的打卡或复现历史结论时必填")
     c.add_argument("--save", action="store_true")
     c.add_argument("--out-md")
     lg = sub.add_parser("log")

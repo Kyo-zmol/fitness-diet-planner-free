@@ -21,7 +21,7 @@ jobs:
         run: python -m py_compile scripts/plan_calculator.py scripts/selftest.py
       - name: Run self-tests
         run: python scripts/selftest.py
-      - name: Smoke-test generate + checkin
+      - name: Smoke-test generate
         run: |
           python scripts/plan_calculator.py template > /tmp/profile.json
           python - <<'EOF'
@@ -35,3 +35,27 @@ jobs:
           EOF
           python scripts/plan_calculator.py generate --profile /tmp/profile.json --out-plan /tmp/plan.json --out-md /tmp/plan.md
           test -s /tmp/plan.md && echo "plan.md generated"
+      - name: Smoke-test check-in CLI
+        run: |
+          # Two saved reviews, both expected to change nothing: this is the path
+          # that used to drop the data point and dilute the next window.
+          W1=$(date -d '+2 weeks' +%F); W2=$(date -d '+3 weeks' +%F)
+          python scripts/plan_calculator.py checkin --plan /tmp/plan.json --weight 78.9 --adherence 90 --as-of "$W1" --save > /tmp/c1.md
+          python scripts/plan_calculator.py checkin --plan /tmp/plan.json --weight 78.5 --adherence 88 --as-of "$W2" --save > /tmp/c2.md
+          test -s /tmp/c2.md && echo "checkin.md rendered"
+          python - <<'EOF'
+          import json
+          d = json.load(open("/tmp/plan.json"))
+          h = d["checkin_history"]
+          assert len(h) == 2, h
+          assert h[1]["date"] > h[0]["date"], h
+          li = d["last_checkin"]
+          assert li["weeks_elapsed"] == 1.0, li
+          assert li["baseline_date"] == h[0]["date"], li
+          print("check-in baseline advanced correctly")
+          EOF
+          # a malformed review date must fail with a readable line, not a traceback
+          if python scripts/plan_calculator.py checkin --plan /tmp/plan.json --weight 78 --as-of 09/10/2026 2>/tmp/err.txt; then
+            echo "expected a rejection of --as-of 09/10/2026" && exit 1
+          fi
+          grep -q 'YYYY-MM-DD' /tmp/err.txt && echo "date validation message ok"

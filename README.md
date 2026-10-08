@@ -121,7 +121,7 @@ vision-estimated macros, clearly labeled `vision-est`. End the day with `summary
 
 > 两周过去了，这周平均体重 83.6，执行率大概 90%，力量没涨。
 
-The agent runs `checkin --plan … --weight … --adherence … [--strength-stalled] --save` and hands you a verdict + adjusted targets + action items.
+The agent runs `checkin --plan … --weight … --adherence … [--strength-stalled] [--as-of YYYY-MM-DD] --save` and hands you a verdict + adjusted targets + action items. `--save` moves the baseline to that check-in, so the next review measures the *new* window instead of diluting the whole plan; `--as-of` back-fills a report you logged late.
 
 ## 📸 Sample output
 
@@ -223,15 +223,23 @@ Known deviations (documented in `references/nutrition-guide.md`): vegan single-d
 ## 📁 Repo structure
 
 ```text
-fitness-diet-planner/
-├── SKILL.md                    # skill instructions (triggers, workflow, rules, acceptance criteria)
-├── agents/openai.yaml          # UI metadata
-├── scripts/plan_calculator.py  # the deterministic engine (generate / checkin / template)
+fitness-diet-planner-free/
+├── SKILL.md                      # triggers, workflow, rules, output format, exceptions, acceptance
+├── CHANGELOG.md                  # version history
+├── LICENSE                       # MIT
+├── agents/openai.yaml            # skill UI metadata
+├── scripts/
+│   ├── plan_calculator.py        # the deterministic engine (template / generate / checkin / log / summary)
+│   └── selftest.py               # 30 stdlib unittest cases -- exactly what CI runs
 ├── references/
-│   ├── training-guide.md       # split rationale, set/rep schemes, injury principles
-│   ├── nutrition-guide.md      # formulas, macro rules, food-swap math, known deviations
-│   └── progress-adjustment.md  # check-in protocol & decision matrix
-└── assets/progress_template.csv
+│   ├── nutrition-guide.md        # formulas, macro rules, food-swap math, known deviations
+│   ├── training-guide.md         # split rationale, set/rep schemes, injury principles
+│   ├── progress-adjustment.md    # check-in protocol, baselines, decision matrix
+│   ├── food-photo-guide.md       # vision rules for reading a plate out of a photo
+│   └── ui-design.md              # the visual system behind docs/preview.png
+├── docs/                         # hero banner, preview, the real meal photos used in Validation
+├── assets/progress_template.csv  # weigh-in / adherence log template
+└── .github/workflows/ci.yml      # selftest on Python 3.10 - 3.13
 ```
 
 ## ⚠️ Disclaimer

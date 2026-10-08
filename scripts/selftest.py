@@ -2,11 +2,13 @@
 # -*- coding: utf-8 -*-
 """Self-test suite for fitness-diet-planner. Run: python scripts/selftest.py
 Exit code 0 = all pass. Used by CI (.github/workflows/ci.yml)."""
+import argparse
 import io
 import json
 import sys
 import tempfile
 import unittest
+from datetime import date
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -139,32 +141,205 @@ class TestSafety(unittest.TestCase):
 
 
 class TestCheckin(unittest.TestCase):
-    def _plan(self):
+    """Every case pins the review date (as_of), because that date drives the
+    rate math. A fixture that relied on the machine clock silently rotted and
+    broke CI on 2026-10-08: plan generated 2026-08-20 -> 7.0 weeks elapsed ->
+    every band read as 'losing too slowly'. Keep as_of explicit in any new
+    check-in test.
+    """
+    GEN = "2026-08-20"     # plan generation date
+    AS_OF = "2026-09-03"   # exactly 2.0 weeks later -- the calibration window
+
+    def _plan(self, **over):
         plan, _ = gen(LIX)
-        return {"version": 1, "generated_at": "2026-08-20", "profile": LIX,
-                "targets": plan["targets"], "start_weight": 84}
+        d = {"version": 1, "generated_at": self.GEN, "profile": LIX,
+             "targets": plan["targets"], "start_weight": 84}
+        d.update(over)
+        return d
+
+    PIN = object()   # sentinel: "pin the review date", the default for this suite
+
+    def _ci(self, weight, adherence=90, as_of=PIN, plan=None):
+        if as_of is self.PIN:
+            as_of = self.AS_OF        # pass None instead to exercise the clock
+        r, _ = pc.checkin(plan if plan is not None else self._plan(),
+                          weight, adherence, as_of=as_of)
+        return r
 
     def test_slow_loss_cuts_calories(self):
-        r, _ = pc.checkin(self._plan(), 83.6, 90)
-        self.assertEqual(r["delta_kcal"], -150)
+        # -0.4 kg over 2 weeks = -0.24 %/wk vs expected -0.70 %/wk -> too slow
+        self.assertEqual(self._ci(83.6, 90)["delta_kcal"], -150)
 
     def test_normal_maintains(self):
-        r, _ = pc.checkin(self._plan(), 82.8, 85)
-        self.assertEqual(r["delta_kcal"], 0)
+        # -1.2 kg / 2 wk = -0.71 %/wk -> on target
+        self.assertEqual(self._ci(82.8, 85)["delta_kcal"], 0)
 
     def test_fast_loss_raises(self):
-        r, _ = pc.checkin(self._plan(), 81.2, 95)
-        self.assertEqual(r["delta_kcal"], 150)
+        # -2.8 kg / 2 wk = -1.67 %/wk -> past the -1.2 %/wk safety line
+        self.assertEqual(self._ci(81.2, 95)["delta_kcal"], 150)
 
     def test_low_adherence_no_change(self):
-        r, _ = pc.checkin(self._plan(), 83.9, 50)
-        self.assertEqual(r["delta_kcal"], 0)
+        self.assertEqual(self._ci(83.9, 50)["delta_kcal"], 0)
 
     def test_floor_respected(self):
-        p = self._plan()
-        p["targets"]["target_kcal"] = p["targets"]["floor"]  # already at floor
-        r, _ = pc.checkin(p, 83.9, 90)
-        self.assertGreaterEqual(r["new_kcal"], p["targets"]["floor"])
+        plan = self._plan()
+        plan["targets"]["target_kcal"] = plan["targets"]["floor"]  # already at floor
+        r = self._ci(83.9, 90, plan=plan)
+        self.assertGreaterEqual(r["new_kcal"], plan["targets"]["floor"])
+
+    def test_elapsed_window_changes_the_verdict(self):
+        """Same 1.2 kg drop: on target over 2 weeks, too slow over 6."""
+        self.assertEqual(self._ci(82.8, 85)["delta_kcal"], 0)
+        late = self._ci(82.8, 85, as_of="2026-10-01")   # 6.0 weeks
+        self.assertEqual(late["actual_pct_per_week"], -0.24)
+        self.assertEqual(late["delta_kcal"], -150)
+
+    def test_time_bomb_canary(self):
+        """Results must not depend on the wall clock when as_of is supplied."""
+        real = pc.date
+
+        class FakeDate(date):
+            _t = date(2026, 9, 3)
+
+            @classmethod
+            def today(cls):
+                return cls._t
+
+        try:
+            pc.date = FakeDate
+            seen = {}
+            for ymd in [(2026, 9, 3), (2027, 1, 1), (2031, 5, 17), (2024, 2, 29)]:
+                FakeDate._t = date(*ymd)
+                seen[ymd] = [(w, self._ci(w, 90)["delta_kcal"])
+                             for w in (83.6, 82.8, 81.2, 83.9)]
+        finally:
+            pc.date = real
+        first = seen[(2026, 9, 3)]
+        for k, v in seen.items():
+            self.assertEqual(v, first, "system clock %s leaked into results" % (k,))
+        self.assertEqual([d for _, d in first], [-150, 0, 150, -150])
+
+    def test_default_as_of_falls_back_to_today(self):
+        """No as_of -> today. A plan from 7 days ago must read as 1.0 week."""
+        real = pc.date
+
+        class FakeDate(date):
+            _t = date(2026, 8, 27)
+
+            @classmethod
+            def today(cls):
+                return cls._t
+
+        try:
+            pc.date = FakeDate
+            r = self._ci(83.6, 90, as_of=None, plan=self._plan(generated_at="2026-08-20"))
+        finally:
+            pc.date = real
+        self.assertEqual(r["weeks_elapsed"], 1.0)
+        self.assertEqual(r["date"], "2026-08-27")
+
+    def test_repeat_checkin_uses_previous_checkin_as_baseline(self):
+        """Weekly re-check-ins measure the last week, not the whole plan."""
+        plan = self._plan(last_checkin={"date": self.AS_OF, "current_weight": 82.8})
+        r = self._ci(82.4, 90, as_of="2026-09-10", plan=plan)
+        self.assertEqual(r["baseline_weight"], 82.8)
+        self.assertEqual(r["baseline_date"], self.AS_OF)
+        self.assertEqual(r["weeks_elapsed"], 1.0)
+        self.assertEqual(r["actual_pct_per_week"], -0.48)
+        # without that baseline the same drop is diluted across 3.0 weeks
+        naive = self._ci(82.4, 90, as_of="2026-09-10")
+        self.assertEqual(naive["weeks_elapsed"], 3.0)
+        # (82.4 - 84) / 84 over 3.0 weeks = -0.63 %/wk -- the dilution this fixes
+        self.assertEqual(naive["actual_pct_per_week"], -0.63)
+
+    def test_stale_plan_window_is_capped(self):
+        r = self._ci(83.6, 90, as_of="2027-08-20")   # 52 weeks after generation
+        self.assertEqual(r["weeks_elapsed"], pc.MAX_CHECKIN_WEEKS)
+        self.assertTrue(any("重新生成" in a for a in r["actions"]))
+
+
+class TestCheckinCli(unittest.TestCase):
+    """cmd_checkin --save is the path the agent actually drives. It must keep
+    every review data point, including the ones that change no calories --
+    that was the second bug behind the 2026-10-08 CI failure."""
+
+    def _plan_file(self, d):
+        plan, _ = gen(LIX)
+        doc = {"version": 1, "generated_at": "2026-08-20", "profile": LIX,
+               "targets": plan["targets"], "start_weight": 84}
+        path = str(Path(d) / "plan.json")
+        with open(path, "w", encoding="utf-8") as fh:
+            json.dump(doc, fh, ensure_ascii=False)
+        return path, dict(doc)
+
+    def _run(self, path, weight, as_of, save=True, adherence=90):
+        args = argparse.Namespace(plan=path, weight=weight, adherence=adherence,
+                                  strength_stalled=False, as_of=as_of, save=save,
+                                  out_md=None)
+        buf, real = io.StringIO(), sys.stdout
+        sys.stdout = buf
+        try:
+            pc.cmd_checkin(args)
+        finally:
+            sys.stdout = real
+        with open(path, encoding="utf-8") as fh:
+            return json.load(fh), buf.getvalue()
+
+    def test_zero_delta_review_still_records_baseline(self):
+        with tempfile.TemporaryDirectory() as d:
+            path, base = self._plan_file(d)
+            kcal0 = base["targets"]["target_kcal"]
+            doc, _ = self._run(path, 82.8, "2026-09-03")        # on target -> delta 0
+            self.assertEqual(doc["last_checkin"]["delta_kcal"], 0)
+            self.assertEqual(doc["checkin_history"][0]["weight"], 82.8)
+            self.assertEqual(doc["targets"]["target_kcal"], kcal0)   # untouched
+            # the following week must span 1 week from 82.8, not 3 weeks from 84
+            doc2, md = self._run(path, 82.4, "2026-09-10")
+            r2 = doc2["last_checkin"]
+            self.assertEqual(r2["weeks_elapsed"], 1.0)
+            self.assertEqual(r2["baseline_weight"], 82.8)
+            self.assertEqual(r2["baseline_date"], "2026-09-03")
+            self.assertIn("82.8 kg（2026-09-03）", md)
+            self.assertEqual(len(doc2["checkin_history"]), 2)
+
+    def test_changed_review_updates_targets_keeps_history(self):
+        with tempfile.TemporaryDirectory() as d:
+            path, base = self._plan_file(d)
+            t0 = base["targets"]
+            doc, _ = self._run(path, 83.9, "2026-09-03")        # too slow -> -150
+            self.assertEqual(doc["last_checkin"]["delta_kcal"], -150)
+            self.assertEqual(doc["targets"]["target_kcal"], t0["target_kcal"] - 150)
+            self.assertLess(doc["targets"]["carb_g"], t0["carb_g"])   # carbs absorb it
+            self.assertEqual(doc["targets"]["protein_g"], t0["protein_g"])  # protein held
+            doc2, _ = self._run(path, 83.5, "2026-09-10")
+            self.assertEqual(len(doc2["checkin_history"]), 2)
+            self.assertEqual(doc2["last_checkin"]["old_kcal"], t0["target_kcal"] - 150)
+
+    def test_save_off_leaves_plan_untouched(self):
+        with tempfile.TemporaryDirectory() as d:
+            path, base = self._plan_file(d)
+            self._run(path, 83.9, "2026-09-03", save=False)
+            with open(path, encoding="utf-8") as fh:
+                doc = json.load(fh)
+            self.assertNotIn("last_checkin", doc)
+            self.assertEqual(doc["targets"]["target_kcal"],
+                             base["targets"]["target_kcal"])
+
+    def test_bad_as_of_exits_cleanly(self):
+        with tempfile.TemporaryDirectory() as d:
+            path, _ = self._plan_file(d)
+            with self.assertRaises(SystemExit) as cm:
+                self._run(path, 82.8, "09/10/2026")
+            self.assertIn("YYYY-MM-DD", str(cm.exception))
+
+    def test_missing_plan_exits_cleanly(self):
+        missing = str(Path(tempfile.gettempdir()) / "no-such-plan-fdp.json")
+        args = argparse.Namespace(plan=missing, weight=80.0, adherence=None,
+                                  strength_stalled=False, as_of=None,
+                                  save=False, out_md=None)
+        with self.assertRaises(SystemExit) as cm:
+            pc.cmd_checkin(args)
+        self.assertIn("cannot read", str(cm.exception))
 
 
 class TestFoodLog(unittest.TestCase):
