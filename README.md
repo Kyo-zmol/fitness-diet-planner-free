@@ -220,6 +220,8 @@ Tested end-to-end on three realistic profiles plus edge cases:
 
 Known deviations (documented in `references/nutrition-guide.md`): vegan single-day protein can reach +10–12%; high-kcal bulk plans run +5–10% protein from staple background protein. Both are expected.
 
+**Automated coverage:** `python scripts/selftest.py` runs **30 stdlib-only unittest cases** (BMR/TDEE math, macro split, meal distribution, check-in verdicts, rejection rails) and is green in CI on **Python 3.10 / 3.11 / 3.12 / 3.13**. CI also smoke-tests the `checkin` CLI end to end, and a *time-bomb canary* replays the whole check-in matrix under four fake system clocks so results can never depend on what day it is. The suite is mutation-checked: reintroducing the wall-clock read, dropping the review baseline, or removing the 12-week window cap each turns it red.
+
 ## 📁 Repo structure
 
 ```text
