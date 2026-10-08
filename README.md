@@ -11,6 +11,7 @@
 [![Works with](https://img.shields.io/badge/Works%20with-Codex%20%2F%20Claude%20Code-orange)](https://github.com/openai/codex)
 [![Stdlib only](https://img.shields.io/badge/dependencies-none-lightgrey)]()
 [![skills.sh](https://skills.sh/b/Kyo-zmol/fitness-diet-planner-free)](https://skills.sh/Kyo-zmol/fitness-diet-planner-free)
+[![Agensi](https://img.shields.io/badge/Agensi_marketplace-listed_free-7c5cff)](https://www.agensi.io/skills/fitness-diet-planner-free)
 [![Release](https://img.shields.io/github/v/release/Kyo-zmol/fitness-diet-planner-free?label=release&color=blueviolet)](https://github.com/Kyo-zmol/fitness-diet-planner-free/releases)
 [![CI](https://github.com/Kyo-zmol/fitness-diet-planner-free/actions/workflows/ci.yml/badge.svg)](https://github.com/Kyo-zmol/fitness-diet-planner-free/actions/workflows/ci.yml)
 
@@ -63,6 +64,8 @@ Interview ──► profile.json ──► plan_calculator.py generate ──►
 5. **Adjustments** — one variable at a time: slow loss → −150 kcal, too fast (>1.2%/wk) → +150 kcal, adherence < 70% → fix execution first, strength stall → deload week.
 
 ## 🚀 Installation
+
+**Agensi marketplace** — listed free: [agensi.io/skills/fitness-diet-planner-free](https://www.agensi.io/skills/fitness-diet-planner-free)
 
 **Any agent (Claude Code / Codex / Cursor …) via [skills.sh](https://skills.sh):**
 
